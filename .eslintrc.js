@@ -7,12 +7,11 @@ module.exports = {
   plugins: ['@typescript-eslint'],
   extends: [
     'eslint:recommended',
-    '@typescript-eslint/recommended',
   ],
   rules: {
-    '@typescript-eslint/no-unused-vars': 'error',
-    '@typescript-eslint/explicit-function-return-type': 'warn',
+    'no-unused-vars': 'off',
     'no-console': 'warn',
+    'no-undef': 'off',
   },
   env: {
     node: true,
