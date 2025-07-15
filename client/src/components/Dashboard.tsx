@@ -5,16 +5,15 @@ import { TimeRangeSelector } from './TimeRangeSelector';
 import { AlertSystem } from './AlertSystem';
 import { MetricsChart } from './MetricsChart';
 import { useWebSocket } from '../hooks/useWebSocket';
-import { TimeRange, MetricData } from '../types/dashboard.types';
+import { TimeRange } from '../types/dashboard.types';
 
 export const Dashboard: React.FC = () => {
-  const { isConnected, systemHealth, lastMessage } = useWebSocket();
+  const { isConnected, systemHealth } = useWebSocket();
   const [selectedTimeRange, setSelectedTimeRange] = useState<TimeRange>({
     value: '1 hour',
     label: '1 hour',
     minutes: 60
   });
-  const [metrics, setMetrics] = useState<MetricData | null>(null);
   const [isLoadingMetrics, setIsLoadingMetrics] = useState(false);
 
   const fetchMetrics = async (timeRange: string) => {
@@ -25,12 +24,8 @@ export const Dashboard: React.FC = () => {
       
       if (response.ok) {
         const data = await response.json();
-        setMetrics({
-          uniqueShips: parseInt(data.unique_ships) || 0,
-          totalMessages: parseInt(data.total_messages) || 0,
-          positionUpdates: parseInt(data.position_updates) || 0,
-          lastMessageTime: data.last_message_time ? new Date(data.last_message_time) : undefined
-        });
+        // Metrics are now handled by individual components that fetch their own data
+        console.log('Metrics data received:', data);
       }
     } catch (error) {
       console.error('Error fetching metrics:', error);
