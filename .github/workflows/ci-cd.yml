@@ -119,11 +119,12 @@ jobs:
         tags: ${{ secrets.DOCKER_USERNAME }}/ais-tracking:latest,${{ secrets.DOCKER_USERNAME }}/ais-tracking:${{ github.sha }}
 
     - name: Deploy to Render
-      uses: bounceapp/render-deploy@v1
+      uses: JorgeLNJunior/render-deploy@v1.4.5
       with:
-        api-key: ${{ secrets.RENDER_API_KEY }}
-        service-id: ${{ secrets.RENDER_SERVICE_ID }}
-        image-url: ${{ secrets.DOCKER_USERNAME }}/ais-tracking:${{ github.sha }}
+        service_id: ${{ secrets.RENDER_SERVICE_ID }}
+        api_key: ${{ secrets.RENDER_API_KEY }}
+        clear_cache: false
+        wait_deploy: true
 
   security-scan:
     runs-on: ubuntu-latest
