@@ -4,7 +4,9 @@ import { Server } from 'socket.io';
 import cors from 'cors';
 import helmet from 'helmet';
 import dotenv from 'dotenv';
+import { Pool } from 'pg';
 import { AISService } from './services/ais-service';
+import { DatabaseInitializer } from './services/database-init';
 
 dotenv.config();
 
@@ -116,6 +118,15 @@ aisService.on('aisDisconnected', () => {
 // Start server
 const startServer = async (): Promise<void> => {
   try {
+    // Initialize database first
+    console.log('Initializing database...');
+    const pool = new Pool({ connectionString: DATABASE_URL });
+    const dbInitializer = new DatabaseInitializer(pool);
+    await dbInitializer.initializeDatabase();
+    await pool.end(); // Close the initialization pool
+    
+    // Start AIS service
+    console.log('Starting AIS service...');
     await aisService.start();
     
     server.listen(PORT, () => {
