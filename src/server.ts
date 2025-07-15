@@ -4,6 +4,7 @@ import { Server } from 'socket.io';
 import cors from 'cors';
 import helmet from 'helmet';
 import dotenv from 'dotenv';
+import path from 'path';
 import { Pool } from 'pg';
 import { AISService } from './services/ais-service';
 import { DatabaseInitializer } from './services/database-init';
@@ -80,6 +81,15 @@ app.get('/api/metrics', async (req, res) => {
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch metrics' });
   }
+});
+
+// Serve static files from React build
+const clientBuildPath = path.join(__dirname, '../client/build');
+app.use(express.static(clientBuildPath));
+
+// Catch-all handler for React Router (must be after API routes)
+app.get('*', (req, res) => {
+  res.sendFile(path.join(clientBuildPath, 'index.html'));
 });
 
 // Socket.IO connection handling
