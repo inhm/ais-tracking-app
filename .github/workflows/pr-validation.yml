@@ -1,0 +1,66 @@
+name: PR Validation
+
+on:
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  validate-pr:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Run linting
+      run: npm run lint
+
+    - name: Run type checking
+      run: npm run typecheck
+
+    - name: Run tests
+      run: npm test -- --watchAll=false
+
+    - name: Check build
+      run: npm run build
+
+    - name: Check for security vulnerabilities
+      run: npm audit --audit-level=moderate
+
+    - name: Validate Docker build
+      run: docker build -t ais-tracking:pr-test .
+
+  frontend-validation:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: 'client/package-lock.json'
+
+    - name: Install frontend dependencies
+      run: cd client && npm ci
+
+    - name: Run frontend linting
+      run: cd client && npm run lint
+
+    - name: Run frontend tests
+      run: cd client && npm test -- --watchAll=false
+
+    - name: Build frontend
+      run: cd client && npm run build
