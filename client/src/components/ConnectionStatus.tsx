@@ -1,5 +1,5 @@
 import React from 'react';
-import { Wifi, WifiOff, Radio, RadioOff } from 'lucide-react';
+import { Wifi, WifiOff, Radio, Activity } from 'lucide-react';
 
 interface ConnectionStatusProps {
   isWebSocketConnected: boolean;
@@ -62,7 +62,7 @@ export const ConnectionStatus: React.FC<ConnectionStatusProps> = ({
             {isAISConnected ? (
               <Radio className="w-5 h-5 text-green-500" />
             ) : (
-              <RadioOff className="w-5 h-5 text-red-500" />
+              <Activity className="w-5 h-5 text-red-500" />
             )}
             <div>
               <p className="font-medium">AIS Stream</p>
