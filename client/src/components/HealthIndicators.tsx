@@ -22,15 +22,6 @@ export const HealthIndicators: React.FC<HealthIndicatorsProps> = ({
   database,
   systemHealth
 }) => {
-  const formatUptime = (seconds: number) => {
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    return `${hours}h ${minutes}m`;
-  };
-
-  const formatMemory = (bytes: number) => {
-    return `${Math.round(bytes / 1024 / 1024)}MB`;
-  };
 
   return (
     <div className="bg-white rounded-lg shadow-md p-6">

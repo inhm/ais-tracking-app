@@ -7,8 +7,13 @@ import { MetricsChart } from './MetricsChart';
 import { HealthIndicators } from './HealthIndicators';
 import { useWebSocket } from '../hooks/useWebSocket';
 import { TimeRange } from '../types/dashboard.types';
+import { Map } from 'lucide-react';
 
-export const Dashboard: React.FC = () => {
+interface DashboardProps {
+  onOpenMap?: () => void;
+}
+
+export const Dashboard: React.FC<DashboardProps> = ({ onOpenMap }) => {
   const { isConnected, systemHealth } = useWebSocket();
   const [selectedTimeRange, setSelectedTimeRange] = useState<TimeRange>({
     value: '1 hour',
@@ -55,12 +60,25 @@ export const Dashboard: React.FC = () => {
       <div className="max-w-7xl mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            AIS Tracking Dashboard
-          </h1>
-          <p className="text-gray-600">
-            Real-time monitoring of ship tracking data from Norwegian waters
-          </p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">
+                AIS Tracking Dashboard
+              </h1>
+              <p className="text-gray-600">
+                Real-time monitoring of ship tracking data from Norwegian waters
+              </p>
+            </div>
+            {onOpenMap && (
+              <button
+                onClick={onOpenMap}
+                className="flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                <Map className="w-5 h-5" />
+                <span>View Map</span>
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Alerts */}
