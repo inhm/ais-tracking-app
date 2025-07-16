@@ -4,6 +4,7 @@ import { MetricsDashboard } from './MetricsDashboard';
 import { TimeRangeSelector } from './TimeRangeSelector';
 import { AlertSystem } from './AlertSystem';
 import { MetricsChart } from './MetricsChart';
+import { HealthIndicators } from './HealthIndicators';
 import { useWebSocket } from '../hooks/useWebSocket';
 import { TimeRange } from '../types/dashboard.types';
 
@@ -83,12 +84,17 @@ export const Dashboard: React.FC = () => {
             />
           </div>
 
-          {/* Connection Status - Takes up 1/3 of the width */}
-          <div className="lg:col-span-1">
+          {/* Side Panel - Takes up 1/3 of the width */}
+          <div className="lg:col-span-1 space-y-6">
             <ConnectionStatus
               isWebSocketConnected={isConnected}
               isAISConnected={systemHealth?.isAISConnected || false}
               lastMessageTime={systemHealth?.lastMessageTime ? new Date(systemHealth.lastMessageTime) : undefined}
+            />
+            
+            <HealthIndicators
+              database={systemHealth?.database}
+              systemHealth={systemHealth}
             />
           </div>
         </div>

@@ -91,6 +91,43 @@ app.get('/api/metrics', async (req, res) => {
   }
 });
 
+app.get('/api/health', async (req, res) => {
+  try {
+    const [dbHealth, dbTest, systemHealth] = await Promise.all([
+      aisService.database.getConnectionHealth(),
+      aisService.database.testConnection(),
+      aisService.getSystemHealth()
+    ]);
+
+    const health = {
+      timestamp: new Date().toISOString(),
+      database: {
+        ...dbHealth,
+        latency: dbTest.latency,
+        testSuccess: dbTest.success
+      },
+      aisService: {
+        isConnected: systemHealth.isAISConnected,
+        messageCount: systemHealth.messageCount,
+        positionCount: systemHealth.positionCount,
+        lastMessageTime: systemHealth.lastMessageTime
+      },
+      server: {
+        uptime: process.uptime(),
+        memory: process.memoryUsage(),
+        version: process.version
+      }
+    };
+
+    res.json(health);
+  } catch (error) {
+    res.status(500).json({ 
+      error: 'Failed to fetch health status',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
 // Serve static files from React build
 const clientBuildPath = path.join(__dirname, '../client/build');
 app.use(express.static(clientBuildPath));
@@ -105,8 +142,14 @@ io.on('connection', (socket) => {
   console.log('Client connected:', socket.id);
 
   // Send initial health status
-  aisService.getSystemHealth().then(health => {
-    socket.emit('healthUpdate', health);
+  Promise.all([
+    aisService.getSystemHealth(),
+    aisService.database.getConnectionHealth()
+  ]).then(([systemHealth, dbHealth]) => {
+    socket.emit('healthUpdate', {
+      ...systemHealth,
+      database: dbHealth
+    });
   });
 
   socket.on('disconnect', () => {
@@ -119,8 +162,12 @@ aisService.on('messageReceived', (message) => {
   io.emit('aisMessage', message);
 });
 
-aisService.on('healthUpdate', (health) => {
-  io.emit('healthUpdate', health);
+aisService.on('healthUpdate', async (health) => {
+  const dbHealth = await aisService.database.getConnectionHealth();
+  io.emit('healthUpdate', {
+    ...health,
+    database: dbHealth
+  });
 });
 
 aisService.on('aisConnected', () => {

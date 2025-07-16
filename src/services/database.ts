@@ -194,4 +194,64 @@ export class DatabaseService {
       [metricName, value]
     );
   }
+
+  async getConnectionHealth(): Promise<{
+    isConnected: boolean;
+    database: string;
+    host: string;
+    port: number;
+    poolSize: number;
+    idleConnections: number;
+    waitingClients: number;
+    lastError?: string;
+  }> {
+    try {
+      const client = await this.pool.connect();
+      const result = await client.query('SELECT current_database(), inet_server_addr(), inet_server_port()');
+      client.release();
+      
+      const [row] = result.rows;
+      
+      return {
+        isConnected: true,
+        database: row.current_database || 'unknown',
+        host: row.inet_server_addr || 'localhost',
+        port: parseInt(row.inet_server_port) || 5432,
+        poolSize: this.pool.totalCount,
+        idleConnections: this.pool.idleCount,
+        waitingClients: this.pool.waitingCount
+      };
+    } catch (error) {
+      return {
+        isConnected: false,
+        database: 'unknown',
+        host: 'unknown',
+        port: 0,
+        poolSize: this.pool.totalCount,
+        idleConnections: this.pool.idleCount,
+        waitingClients: this.pool.waitingCount,
+        lastError: error instanceof Error ? error.message : 'Unknown error'
+      };
+    }
+  }
+
+  async testConnection(): Promise<{ success: boolean; latency: number; error?: string }> {
+    const startTime = Date.now();
+    
+    try {
+      const client = await this.pool.connect();
+      await client.query('SELECT 1');
+      client.release();
+      
+      const latency = Date.now() - startTime;
+      return { success: true, latency };
+    } catch (error) {
+      const latency = Date.now() - startTime;
+      return { 
+        success: false, 
+        latency,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      };
+    }
+  }
 }
