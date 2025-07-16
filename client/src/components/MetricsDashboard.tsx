@@ -12,6 +12,9 @@ export const MetricsDashboard: React.FC<MetricsDashboardProps> = ({
   systemHealth,
   timeRange
 }) => {
+  // Debug logging
+  console.log('MetricsDashboard props:', { systemHealth, timeRange });
+
   const formatNumber = (num: number) => {
     if (num >= 1000000) {
       return (num / 1000000).toFixed(1) + 'M';

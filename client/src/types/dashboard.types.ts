@@ -4,6 +4,16 @@ export interface SystemHealth {
   shipCount: number;
   positionUpdates: number;
   lastMessageTime?: Date;
+  database?: {
+    isConnected: boolean;
+    database: string;
+    host: string;
+    port: number;
+    poolSize: number;
+    idleConnections: number;
+    waitingClients: number;
+    lastError?: string;
+  };
 }
 
 export interface MetricData {

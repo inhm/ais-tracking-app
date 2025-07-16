@@ -26,6 +26,7 @@ export const useWebSocket = () => {
     });
 
     newSocket.on('healthUpdate', (health: SystemHealth) => {
+      console.log('Received health update:', health);
       setSystemHealth(health);
     });
 

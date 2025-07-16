@@ -17,16 +17,23 @@ export const Dashboard: React.FC = () => {
   });
   const [isLoadingMetrics, setIsLoadingMetrics] = useState(false);
 
+  // Debug logging
+  console.log('Dashboard state:', { isConnected, systemHealth });
+
   const fetchMetrics = async (timeRange: string) => {
+    console.log('Fetching metrics for timeRange:', timeRange);
     setIsLoadingMetrics(true);
     try {
       const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
+      console.log('API URL:', API_URL);
       const response = await fetch(`${API_URL}/api/metrics?timeRange=${encodeURIComponent(timeRange)}`);
       
+      console.log('Metrics response status:', response.status);
       if (response.ok) {
         const data = await response.json();
-        // Metrics are now handled by individual components that fetch their own data
         console.log('Metrics data received:', data);
+      } else {
+        console.error('Metrics fetch failed:', response.status, response.statusText);
       }
     } catch (error) {
       console.error('Error fetching metrics:', error);
