@@ -6,8 +6,9 @@ import helmet from 'helmet';
 import dotenv from 'dotenv';
 import path from 'path';
 import { Pool } from 'pg';
-import { AISService } from './services/ais-service';
+import { AISServiceV2 } from './services/ais-service-v2';
 import { DatabaseInitializer } from './services/database-init';
+import { BarentswatchConfig } from './services/barentswatch-api';
 
 dotenv.config();
 
@@ -22,11 +23,18 @@ const io = new Server(server, {
 
 const PORT = process.env.PORT || 3001;
 const DATABASE_URL = process.env.DATABASE_URL || 'postgresql://ais_user:ais_password@localhost:5432/ais_tracking';
-const AIS_HOST = process.env.AIS_HOST || '153.44.253.27';
-const AIS_PORT = parseInt(process.env.AIS_PORT || '5631');
 
-// Initialize AIS service
-const aisService = new AISService(DATABASE_URL, AIS_HOST, AIS_PORT);
+// Barentswatch API configuration
+const barentswatwchConfig: BarentswatchConfig = {
+  clientId: process.env.BARENTSWATCH_CLIENT_ID || '',
+  clientSecret: process.env.BARENTSWATCH_CLIENT_SECRET || '',
+  scope: process.env.BARENTSWATCH_SCOPE || 'ais',
+  authUrl: process.env.BARENTSWATCH_AUTH_URL || 'https://id.barentswatch.no/connect/token',
+  apiBaseUrl: process.env.BARENTSWATCH_API_URL || 'https://live.ais.barentswatch.no'
+};
+
+// Initialize AIS service with Barentswatch API
+const aisService = new AISServiceV2(DATABASE_URL, barentswatwchConfig);
 
 // Middleware
 app.use(helmet());
@@ -66,7 +74,7 @@ app.get('/api/positions', async (req, res) => {
   try {
     const minutes = parseInt(req.query.minutes as string) || 60;
     const limit = parseInt(req.query.limit as string) || 1000;
-    const positions = await aisService.getRecentPositions(minutes, limit);
+    const positions = await aisService.getRecentPositions(limit);
     res.json(positions);
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch positions' });
