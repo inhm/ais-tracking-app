@@ -65,8 +65,8 @@ export const ConnectionStatus: React.FC<ConnectionStatusProps> = ({
               <Activity className="w-5 h-5 text-red-500" />
             )}
             <div>
-              <p className="font-medium">AIS Stream</p>
-              <p className="text-sm text-gray-600">153.44.253.27:5631</p>
+              <p className="font-medium">AIS API</p>
+              <p className="text-sm text-gray-600">api.barentswatch.no</p>
             </div>
           </div>
           <div className="flex items-center space-x-2">

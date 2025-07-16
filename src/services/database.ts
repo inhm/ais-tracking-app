@@ -57,6 +57,14 @@ export class DatabaseService {
   }
 
   private async savePositionMessage(client: PoolClient, position: AISPosition): Promise<void> {
+    // Ensure ship record exists before inserting position
+    await client.query(
+      `INSERT INTO ships (mmsi) 
+       VALUES ($1) 
+       ON CONFLICT (mmsi) DO NOTHING`,
+      [position.mmsi]
+    );
+
     await client.query(
       `INSERT INTO ais_positions 
        (mmsi, message_type, latitude, longitude, speed_over_ground, course_over_ground, 

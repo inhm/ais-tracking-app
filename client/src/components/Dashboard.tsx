@@ -104,7 +104,7 @@ export const Dashboard: React.FC = () => {
         {/* Footer */}
         <div className="mt-8 text-center text-sm text-gray-500">
           <p>
-            AIS data sourced from Norwegian Coastal Administration (153.44.253.27:5631)
+            AIS data sourced from Barentswatch AIS API (api.barentswatch.no)
           </p>
           <p className="mt-1">
             Dashboard updates in real-time via WebSocket connection
