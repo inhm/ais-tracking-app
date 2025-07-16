@@ -9,8 +9,15 @@ import { Pool } from 'pg';
 import { AISServiceV2 } from './services/ais-service-v2';
 import { DatabaseInitializer } from './services/database-init';
 import { BarentswatchConfig } from './services/barentswatch-api';
+import { Logger } from './utils/logger';
 
 dotenv.config();
+
+const logger = Logger.getLogger('SERVER');
+logger.info('Starting AIS Tracking Server', { 
+  nodeVersion: process.version,
+  logLevel: process.env.LOG_LEVEL || 'INFO'
+});
 
 const app = express();
 const server = createServer(app);
@@ -23,6 +30,12 @@ const io = new Server(server, {
 
 const PORT = process.env.PORT || 3001;
 const DATABASE_URL = process.env.DATABASE_URL || 'postgresql://ais_user:ais_password@localhost:5432/ais_tracking';
+
+logger.info('Configuration loaded', {
+  PORT,
+  DATABASE_URL: DATABASE_URL.replace(/\/\/.*:.*@/, '//***:***@'),
+  CLIENT_URL: process.env.CLIENT_URL || "http://localhost:3000"
+});
 
 // Barentswatch API configuration
 const barentswatwchConfig: BarentswatchConfig = {
@@ -71,22 +84,30 @@ app.get('/api/ships', async (req, res) => {
 });
 
 app.get('/api/positions', async (req, res) => {
+  logger.debug('API: GET /api/positions', req.query);
   try {
     const minutes = parseInt(req.query.minutes as string) || 60;
     const limit = parseInt(req.query.limit as string) || 1000;
+    logger.debug('Fetching recent positions', { minutes, limit });
     const positions = await aisService.getRecentPositions(limit);
+    logger.debug('Positions fetched successfully', { count: positions.length });
     res.json(positions);
   } catch (error) {
+    logger.error('Failed to fetch positions', error);
     res.status(500).json({ error: 'Failed to fetch positions' });
   }
 });
 
 app.get('/api/metrics', async (req, res) => {
+  logger.debug('API: GET /api/metrics', req.query);
   try {
     const timeRange = req.query.timeRange as string || '1 hour';
+    logger.debug('Fetching health metrics', { timeRange });
     const metrics = await aisService.getHealthMetrics(timeRange);
+    logger.debug('Health metrics fetched successfully', metrics);
     res.json(metrics);
   } catch (error) {
+    logger.error('Failed to fetch metrics', error);
     res.status(500).json({ error: 'Failed to fetch metrics' });
   }
 });
@@ -184,21 +205,24 @@ aisService.on('aisDisconnected', () => {
 const startServer = async (): Promise<void> => {
   try {
     // Initialize database first
-    console.log('Initializing database...');
+    logger.info('Initializing database...');
     const pool = new Pool({ connectionString: DATABASE_URL });
     const dbInitializer = new DatabaseInitializer(pool);
     await dbInitializer.initializeDatabase();
     await pool.end(); // Close the initialization pool
+    logger.info('Database initialized successfully');
     
     // Start AIS service
-    console.log('Starting AIS service...');
+    logger.info('Starting AIS service...');
     await aisService.start();
+    logger.info('AIS service started successfully');
     
     server.listen(PORT, () => {
-      console.log(`Server running on port ${PORT}`);
+      logger.info(`Server running on port ${PORT}`);
+      logger.info('Server startup completed successfully');
     });
   } catch (error) {
-    console.error('Failed to start server:', error);
+    logger.error('Failed to start server', error);
     process.exit(1);
   }
 };

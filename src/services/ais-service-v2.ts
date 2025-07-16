@@ -2,20 +2,28 @@ import { BarentswatchAPIClient, BarentswatchConfig, BarentswatchAISData } from '
 import { DatabaseService } from './database';
 import { AISMessage, SystemHealth } from '../types/ais.types';
 import { EventEmitter } from 'events';
+import { Logger } from '../utils/logger';
 
 export class AISServiceV2 extends EventEmitter {
   private apiClient: BarentswatchAPIClient;
-  private database: DatabaseService;
+  public database: DatabaseService;
   private messageCount = 0;
   private positionCount = 0;
   private lastMessageTime?: Date;
   private healthInterval?: NodeJS.Timeout;
+  private logger: Logger;
 
   constructor(
     databaseUrl: string,
     barentswatwchConfig: BarentswatchConfig
   ) {
     super();
+    this.logger = Logger.getLogger('AIS-SERVICE-V2');
+    this.logger.info('Initializing AIS Service V2', { 
+      databaseUrl: databaseUrl.replace(/\/\/.*:.*@/, '//***:***@'),
+      apiBaseUrl: barentswatwchConfig.apiBaseUrl
+    });
+    
     this.apiClient = new BarentswatchAPIClient(barentswatwchConfig);
     this.database = new DatabaseService(databaseUrl);
     this.setupEventHandlers();

@@ -1,11 +1,16 @@
 import { Pool, PoolClient } from 'pg';
 import { AISMessage, AISPosition, AISStaticData, Ship } from '../types/ais.types';
 import { AISParser } from './ais-parser';
+import { Logger } from '../utils/logger';
 
 export class DatabaseService {
   private pool: Pool;
+  private logger: Logger;
 
   constructor(connectionString: string) {
+    this.logger = Logger.getLogger('DATABASE');
+    this.logger.info('Initializing DatabaseService', { connectionString: connectionString?.replace(/\/\/.*:.*@/, '//***:***@') });
+    
     this.pool = new Pool({
       connectionString,
       max: 10,
@@ -17,25 +22,53 @@ export class DatabaseService {
     });
     
     this.pool.on('error', (err) => {
-      console.error('Database pool error:', err);
+      this.logger.error('Database pool error', err);
+    });
+
+    this.pool.on('connect', (client) => {
+      this.logger.debug('New database client connected');
+    });
+
+    this.pool.on('acquire', (client) => {
+      this.logger.debug('Database client acquired from pool');
+    });
+
+    this.pool.on('remove', (client) => {
+      this.logger.debug('Database client removed from pool');
     });
   }
 
   async connect(): Promise<void> {
+    this.logger.logMethodEntry('connect');
     try {
-      await this.pool.connect();
-      console.log('Connected to PostgreSQL database');
+      const client = await this.pool.connect();
+      this.logger.info('Successfully connected to PostgreSQL database');
+      
+      // Test the connection and log database info
+      const result = await client.query('SELECT current_database(), version()');
+      this.logger.info('Database connection verified', {
+        database: result.rows[0].current_database,
+        version: result.rows[0].version
+      });
+      
+      client.release();
+      this.logger.logMethodExit('connect', { success: true });
     } catch (error) {
-      console.error('Database connection error:', error);
+      this.logger.error('Database connection error', error);
       throw error;
     }
   }
 
   async disconnect(): Promise<void> {
+    this.logger.logMethodEntry('disconnect');
     await this.pool.end();
+    this.logger.info('Database connection pool ended');
+    this.logger.logMethodExit('disconnect');
   }
 
   async saveAISMessage(message: AISMessage): Promise<void> {
+    this.logger.logMethodEntry('saveAISMessage', { mmsi: message.mmsi, messageType: message.messageType });
+    
     const maxRetries = 3;
     let lastError: Error | null = null;
     
@@ -43,8 +76,17 @@ export class DatabaseService {
       let client: PoolClient | null = null;
       
       try {
+        this.logger.debug(`Attempting to save AIS message (attempt ${attempt}/${maxRetries})`);
         client = await this.pool.connect();
+        this.logger.debug('Database client acquired for saveAISMessage');
+        
         await client.query('BEGIN');
+        this.logger.debug('Database transaction started');
+
+        this.logger.logDatabaseOperation('INSERT ais_messages', 
+          'INSERT INTO ais_messages (mmsi, message_type, raw_message, parsed_data, timestamp_received) VALUES ($1, $2, $3, $4, $5)',
+          [message.mmsi, message.messageType, message.raw?.substring(0, 100), 'JSON', message.timestamp]
+        );
 
         await client.query(
           'INSERT INTO ais_messages (mmsi, message_type, raw_message, parsed_data, timestamp_received) VALUES ($1, $2, $3, $4, $5)',
@@ -52,36 +94,43 @@ export class DatabaseService {
         );
 
         if (message.messageType >= 1 && message.messageType <= 3) {
+          this.logger.debug('Saving position message');
           await this.savePositionMessage(client, message as AISPosition);
         }
 
         if (message.messageType === 5) {
+          this.logger.debug('Saving static data message');
           await this.saveStaticDataMessage(client, message as AISStaticData);
         }
 
         await client.query('COMMIT');
+        this.logger.debug('Database transaction committed successfully');
+        this.logger.logMethodExit('saveAISMessage', { success: true, attempt });
         return; // Success - exit retry loop
         
       } catch (error) {
         lastError = error as Error;
+        this.logger.error(`Database operation failed (attempt ${attempt}/${maxRetries})`, error);
         
         if (client) {
           try {
             await client.query('ROLLBACK');
+            this.logger.debug('Database transaction rolled back');
           } catch (rollbackError) {
-            console.error('Error during rollback:', rollbackError);
+            this.logger.error('Error during rollback', rollbackError);
           }
         }
         
         if (attempt === maxRetries) {
-          console.error(`Error saving AIS message after ${maxRetries} attempts:`, error);
+          this.logger.error(`Error saving AIS message after ${maxRetries} attempts`, error);
         } else {
-          console.warn(`Database operation failed (attempt ${attempt}/${maxRetries}), retrying in ${attempt * 1000}ms...`);
+          this.logger.warn(`Database operation failed (attempt ${attempt}/${maxRetries}), retrying in ${attempt * 1000}ms...`);
           await new Promise(resolve => setTimeout(resolve, attempt * 1000));
         }
       } finally {
         if (client) {
           client.release();
+          this.logger.debug('Database client released');
         }
       }
     }
