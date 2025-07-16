@@ -3,6 +3,7 @@ export interface SystemHealth {
   messageCount: number;
   shipCount: number;
   positionUpdates: number;
+  positionCount: number;
   lastMessageTime?: Date;
   database?: {
     isConnected: boolean;

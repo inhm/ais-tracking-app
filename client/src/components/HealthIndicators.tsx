@@ -1,5 +1,6 @@
 import React from 'react';
 import { Database, Server, Activity, Clock, Users, Zap } from 'lucide-react';
+import { SystemHealth } from '../types/dashboard.types';
 
 interface DatabaseHealth {
   isConnected: boolean;
@@ -14,12 +15,7 @@ interface DatabaseHealth {
 
 interface HealthIndicatorsProps {
   database?: DatabaseHealth;
-  systemHealth?: {
-    isAISConnected: boolean;
-    messageCount: number;
-    positionCount: number;
-    lastMessageTime?: string;
-  };
+  systemHealth?: SystemHealth | null;
 }
 
 export const HealthIndicators: React.FC<HealthIndicatorsProps> = ({
