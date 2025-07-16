@@ -99,6 +99,7 @@ export class AISService extends EventEmitter {
       messageCount: this.messageCount,
       shipCount: parseInt(metrics.unique_ships) || 0,
       positionUpdates: parseInt(metrics.position_updates) || 0,
+      positionCount: this.positionCount,
       lastMessageTime: this.lastMessageTime
     };
   }

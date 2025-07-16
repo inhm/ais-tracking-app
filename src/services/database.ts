@@ -17,7 +17,6 @@ export class DatabaseService {
       min: 2,
       idleTimeoutMillis: 30000,
       connectionTimeoutMillis: 60000,
-      acquireTimeoutMillis: 60000,
       allowExitOnIdle: true,
     });
     

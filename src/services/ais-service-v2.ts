@@ -152,6 +152,7 @@ export class AISServiceV2 extends EventEmitter {
         messageCount: this.messageCount,
         shipCount: parseInt(dbHealth.unique_ships) || 0,
         positionUpdates: parseInt(dbHealth.position_updates) || 0,
+        positionCount: this.positionCount,
         lastMessageTime: this.lastMessageTime
       };
     } catch (error) {
@@ -161,6 +162,7 @@ export class AISServiceV2 extends EventEmitter {
         messageCount: this.messageCount,
         shipCount: 0,
         positionUpdates: this.positionCount,
+        positionCount: this.positionCount,
         lastMessageTime: this.lastMessageTime
       };
     }
