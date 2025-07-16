@@ -8,9 +8,16 @@ export class DatabaseService {
   constructor(connectionString: string) {
     this.pool = new Pool({
       connectionString,
-      max: 20,
+      max: 10,
+      min: 2,
       idleTimeoutMillis: 30000,
-      connectionTimeoutMillis: 10000,
+      connectionTimeoutMillis: 60000,
+      acquireTimeoutMillis: 60000,
+      allowExitOnIdle: true,
+    });
+    
+    this.pool.on('error', (err) => {
+      console.error('Database pool error:', err);
     });
   }
 
@@ -29,31 +36,57 @@ export class DatabaseService {
   }
 
   async saveAISMessage(message: AISMessage): Promise<void> {
-    const client = await this.pool.connect();
-    try {
-      await client.query('BEGIN');
+    const maxRetries = 3;
+    let lastError: Error | null = null;
+    
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      let client: PoolClient | null = null;
+      
+      try {
+        client = await this.pool.connect();
+        await client.query('BEGIN');
 
-      await client.query(
-        'INSERT INTO ais_messages (mmsi, message_type, raw_message, parsed_data, timestamp_received) VALUES ($1, $2, $3, $4, $5)',
-        [message.mmsi, message.messageType, message.raw, JSON.stringify(message), message.timestamp]
-      );
+        await client.query(
+          'INSERT INTO ais_messages (mmsi, message_type, raw_message, parsed_data, timestamp_received) VALUES ($1, $2, $3, $4, $5)',
+          [message.mmsi, message.messageType, message.raw, JSON.stringify(message), message.timestamp]
+        );
 
-      if (message.messageType >= 1 && message.messageType <= 3) {
-        await this.savePositionMessage(client, message as AISPosition);
+        if (message.messageType >= 1 && message.messageType <= 3) {
+          await this.savePositionMessage(client, message as AISPosition);
+        }
+
+        if (message.messageType === 5) {
+          await this.saveStaticDataMessage(client, message as AISStaticData);
+        }
+
+        await client.query('COMMIT');
+        return; // Success - exit retry loop
+        
+      } catch (error) {
+        lastError = error as Error;
+        
+        if (client) {
+          try {
+            await client.query('ROLLBACK');
+          } catch (rollbackError) {
+            console.error('Error during rollback:', rollbackError);
+          }
+        }
+        
+        if (attempt === maxRetries) {
+          console.error(`Error saving AIS message after ${maxRetries} attempts:`, error);
+        } else {
+          console.warn(`Database operation failed (attempt ${attempt}/${maxRetries}), retrying in ${attempt * 1000}ms...`);
+          await new Promise(resolve => setTimeout(resolve, attempt * 1000));
+        }
+      } finally {
+        if (client) {
+          client.release();
+        }
       }
-
-      if (message.messageType === 5) {
-        await this.saveStaticDataMessage(client, message as AISStaticData);
-      }
-
-      await client.query('COMMIT');
-    } catch (error) {
-      await client.query('ROLLBACK');
-      console.error('Error saving AIS message:', error);
-      throw error;
-    } finally {
-      client.release();
     }
+    
+    throw lastError;
   }
 
   private async savePositionMessage(client: PoolClient, position: AISPosition): Promise<void> {
