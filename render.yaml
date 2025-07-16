@@ -3,7 +3,7 @@ services:
     name: ais-tracking-app
     env: node
     plan: free
-    buildCommand: npm ci && npx tsc
+    buildCommand: npm ci && npx tsc && cd client && npm ci && npm run build
     startCommand: npm start
     envVars:
       - key: NODE_ENV
